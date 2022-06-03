@@ -108,7 +108,11 @@ ui <- dashboardPage(
                             box(title = "Data files", status = "primary",
                                 #upload data file
                                 fileInput("upload_data_files_standard", "Upload data files (.OUT)", multiple = TRUE, accept = ".OUT"),
-                                div(dataTableOutput("upload_data_standard_combined_display"), style = "font-size: 75%; width: 100%")
+                                textInput("upload_text_standard","Simulation set name"),
+                                actionButton("upload_button_standard","Upload"),
+                                div(dataTableOutput("upload_data_standard_combined_display"), style = "font-size: 75%; width: 100%"),
+                                div(dataTableOutput("upload_standard_list"), style = "font-size: 75%; width: 100%")
+                                
                             )
                         )
                     )
@@ -341,9 +345,41 @@ server <- function(input, output, session) {
     
     ##########standard
     ###upload data
+    
+    #upload multiple times and append file list
+    # upload_standard <- reactiveValues()
+    # observe({upload_standard$list <- NULL})
+    # observeEvent(input$upload_data_files_standard, {
+    #   old_list <- upload_standard$list
+    #   new_list <- bind_rows(old_list, input$upload_data_files_standard) %>% distinct(name)
+    #   upload_standard$list <- new_list
+    # })
+    # 
+    
+    #upload data  file and label text for the set
+    #upload and append multiple sets
+    upload_standard <- reactiveValues()
+    observe({upload_standard$list <- NULL})
+    observe({upload_standard$temp_list <- NULL})
+    observeEvent(input$upload_button_standard, {
+      upload_standard$temp_list <- input$upload_data_files_standard %>% 
+        mutate(simulation_set_name = input$upload_text_standard)
+    })
+    observeEvent(input$upload_button_standard, {
+      old_list <- upload_standard$list
+      new_list <- bind_rows(old_list, upload_standard$temp_list) %>% 
+        distinct(name, simulation_set_name, .keep_all = TRUE)
+      upload_standard$list <- new_list
+    })
+    
+    #show list all uploaded file 
+    output$upload_standard_list <- renderDataTable(upload_standard$list,options = list(scrollX = TRUE))
+    
+    #
     upload_data_standard_combined <- reactive({
             #require uploaded data files before evaluating
             req(input$upload_data_files_standard)
+            req(upload_standard$list)
             #check to make sure uploaded files has the correct extension .OUT, return error if not 
             upload_data_files_standard_ext <- tools::file_ext(input$upload_data_files_standard$name)
             if(any(upload_data_files_standard_ext != "OUT")){
@@ -354,7 +390,8 @@ server <- function(input, output, session) {
             file.extension = c("Clim.OUT","CompEC.OUT","CompWC.OUT","Crop.OUT","Inet.OUT","Prof.OUT","Run.OUT","Salt.OUT","Wabal.OUT")
             
             #read data
-            input$upload_data_files_standard %>%            
+            #input$upload_data_files_standard %>% #for one upload  
+            upload_standard$list %>% #for multiple upload
                 #detect file extensions
                 mutate(extension = str_extract(name, paste(file.extension, sep="|"))) %>%
                 mutate(dataset = map2(datapath, extension, function(datapath, extension){
@@ -385,15 +422,19 @@ server <- function(input, output, session) {
 
     #output datatable of the data file name being read
     output$upload_data_standard_combined_display <- renderDataTable(upload_data_standard_combined() %>%
-                                                                        select(name) %>%
+                                                                        select(name, simulation_set_name) %>%
                                                                         distinct(),
                                                                     options = list(scrollX = TRUE))
    
     ##combined all daily data  
-    upload_data_standard_combined_daily <- reactive({reduce(upload_data_standard_combined()$dataset[upload_data_standard_combined()$extension != "Run.OUT"], #filter out Run.OUT file as data format (seasonal)  different from others (daily)
-                                                                    left_join, by = c("Day", "Month", "Year", "DAP", "Stage")) %>%
-                                                      mutate(Date = dmy(paste(Day, Month, Year, sep="-")))
-                                                                 })
+    upload_data_standard_combined_daily <- reactive({
+      #filter out Run.OUT file as data format (seasonal)  different from others (daily)
+      upload_data_standard_combined() %>%
+        filter(extension != "Run.OUT") %>%
+        group_by(simulation_set_name) %>%
+        reduce(left_join, by = c("Day", "Month", "Year", "DAP", "Stage")) %>%
+        mutate(Date = dmy(paste(Day, Month, Year, sep="-")))
+    })
       
     #render output display
     output$upload_data_standard_combined_daily_display <- renderDataTable(upload_data_standard_combined_daily(),
