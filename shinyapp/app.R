@@ -35,7 +35,7 @@ ui <- dashboardPage(
                      menuSubItem("Plot", tabName = "tab_plot_plugin", icon = icon("caret-right")),
                      menuSubItem("Analysis", tabName = "tab_analysis_plugin", icon = icon("caret-right"))
                      ),
-            menuItem("Legend", tabName = "aquacrop_legend", icon = icon("book"))
+            menuItem("Glossary", tabName = "aquacrop_glossary", icon = icon("book"))
         )
     ),
     
@@ -140,6 +140,11 @@ ui <- dashboardPage(
                         plotOutput("ggplot_standard_display"),
                         plotlyOutput("ggplotly_standard_display") 
                       )
+                    )
+            ),
+            tabItem(tabName = "tab_analysis_standard",
+                    h2(
+                      
                     )
             ),
             tabItem(tabName = "tab_upload_data_plugin",
@@ -292,10 +297,15 @@ ui <- dashboardPage(
                         ))
                     )
             ),
-            tabItem(tabName = "aquacrop_legend",
+            tabItem(tabName = "tab_analysis_plugin",
+                    h2(
+                      
+                    )
+            ),
+            tabItem(tabName = "aquacrop_glossary",
                     h2(fluidRow(
                       box(width = 12 ,
-                          div(dataTableOutput("legend_display"), style = "font-size: 75%; width: 100%")
+                          div(dataTableOutput("glossary_display"), style = "font-size: 75%; width: 100%")
                           )
                     ))
             )
@@ -315,19 +325,19 @@ server <- function(input, output, session) {
         )
     }, deleteFile = FALSE)
     
-    ##legend for varaible names
-    legend <- reactive({
-      read.csv("legend.csv")
+    ##glossary for varaible names
+    glossary <- reactive({
+      read.csv("glossary.csv")
     })
-    output$legend_display <- renderDataTable(legend())
+    output$glossary_display <- renderDataTable(glossary())
     
-    ###select button to enter aquacrop standard or plugin
-    observeEvent(input$select_aquacrop_standard, {
-        updateTabItems(session, "menu_tabs", "tab_upload_data_standard")
-    })
-    observeEvent(input$select_aquacrop_plugin, {
-        updateTabItems(session, "menu_tabs", "tab_upload_data_plugin")
-    })
+    # ###select button to enter aquacrop standard or plugin
+    # observeEvent(input$select_aquacrop_standard, {
+    #     updateTabItems(session, "menu_tabs", "tab_upload_data_standard")
+    # })
+    # observeEvent(input$select_aquacrop_plugin, {
+    #     updateTabItems(session, "menu_tabs", "tab_upload_data_plugin")
+    # })
     
     ##########standard
     ###upload data
