@@ -14,7 +14,7 @@ input_group_variable <- c("climate","location","rcp","irrigation","crop","soil",
 input_plot_variable_standard <- c("Biomass", "Date")
 input_color_choice <- c("black","grey", "skyblue","orange","green","yellow","blue","vermillion","purple", "red","lightgreen")
 input_plot_element_choice <- c("point", "line", "linear_trend", "linear_trend_error","grid_line")
-input_legend_pos = c("none","left","right","top","bottom")
+input_legend_pos = c("none","right","bottom","left","top")
 
 #define UI dashboard
 ui <- dashboardPage(
@@ -75,13 +75,13 @@ ui <- dashboardPage(
                                   "))),
         
         #customise style text size of different elements
-        tags$style(type='text/css', ".selectize-input { font-size: 22px; line-height: 22px; width:80%; } 
-                                      .selectize-dropdown { font-size: 22px; line-height: 22px; width:80%; }
-                                      .control-label { font-size: 22px; line-height: 22px; }
+        tags$style(type='text/css', ".selectize-input { font-size: 20px; line-height: 20px; width:80%; } 
+                                      .selectize-dropdown { font-size: 20px; line-height: 20px; width:80%; }
+                                      .control-label { font-size: 20px; line-height: 20px; }
                                       .btn { font-size: 20px; }
-                                      .form-control { font-size: 20px; line-height: 20px; height:42px; width:80%; }
-                                      .box-title { font-size: 24px!important; line-height: 32px; font-weight:bold; }
-                                      .nav-tabs { font-size: 22px; line-height: 22px; font-weight:bold; }
+                                      .form-control { font-size: 18px; line-height: 18px; height:42px; width:80%; }
+                                      .box-title { font-size: 22px!important; line-height: 22px; font-weight:bold; }
+                                      .nav-tabs { font-size: 20px; line-height: 20px; font-weight:bold; }
                    "),
         
         tabItems(
@@ -170,7 +170,7 @@ ui <- dashboardPage(
                         downloadButton("download_combined_dataset", "Download combined dataset"),
                         #display combined data table
                         div(dataTableOutput("data_prm_combined_display"), style = "font-size: 75%; width: 100%"),
-                        div(dataTableOutput("data_prm_combined_plot_rename_display"), style = "font-size: 75%; width: 100%"),
+                        #div(dataTableOutput("data_prm_combined_plot_rename_display"), style = "font-size: 75%; width: 100%"),
                         
                     )
             ),
@@ -179,7 +179,7 @@ ui <- dashboardPage(
                         fluidRow(
                             box(title = "Select plotting variables",
                                 width = 3,
-                                height = "350px",
+                                height = "300px",
                                 status = "primary",
                                 solidHeader = TRUE,
                                 selectInput("y_var", "Variable to plot on Y axis", input_plot_y_variable, selected = "Yield"),
@@ -189,7 +189,7 @@ ui <- dashboardPage(
                             shinyjs::hidden(div(id = "hiddenbox1",
                               box(title = "Calculate mean",
                                   width = 3,
-                                  height = "350px",
+                                  height = "300px",
                                   status = "primary",
                                   solidHeader = TRUE,
                                   selectInput("use_mean", 
@@ -208,7 +208,7 @@ ui <- dashboardPage(
                             shinyjs::hidden(div(id = "hiddenbox2",
                               box(title = "Select grouping variables",
                                 width = 3,
-                                height = "350px",
+                                height = "300px",
                                 status = "primary",
                                 solidHeader = TRUE,
                                 selectizeInput("col_var", 
@@ -227,12 +227,12 @@ ui <- dashboardPage(
                              shinyjs::hidden(div(id = "hiddenbox3",
                             box(title = "Select plot elements",
                                 width = 3,
-                                height = "350px",
+                                height = "300px",
                                 status = "primary",
                                 solidHeader = TRUE,
                                 selectizeInput("plot_element", 
                                                label = tags$span("Elements to plot", bsButton("plot_info5", label = "", icon = icon("info"), size = "extra-small")), 
-                                               input_plot_element_choice, multiple = TRUE, selected = c("point", "linear_trend")),
+                                               input_plot_element_choice, multiple = TRUE, selected = c("point", "linear_trend","grid_line")),
                                 bsPopover(id = "plot_info5", title = "", placement = "right", trigger = "hover"),
                                 div(style = "position:absolute;right:1em; bottom:1em;",actionButton("plot_next4", "Plot", icon = icon("chevron-right")))
                                 )
@@ -241,7 +241,7 @@ ui <- dashboardPage(
                         shinyjs::hidden(div(id = "hiddenbox4",
                           fluidRow(
                             tabBox(width = 12,
-                                   height = "1400px",
+                                   height = "750px",
                                    id = "plugin_plot_tabbox",
                                    tabPanel("Standard plot",
                                             plotOutput("ggplot_plugin_display")
@@ -284,8 +284,8 @@ ui <- dashboardPage(
                                 height = "450px",
                                 status = "primary",
                                 solidHeader = TRUE,
-                                textInput("export_plot_width", "Width (cm)", value = "42"),
-                                textInput("export_plot_height", "Height (cm)", value = "26"),
+                                textInput("export_plot_width", "Width (cm)", value = "24"),
+                                textInput("export_plot_height", "Height (cm)", value = "16"),
                                 selectInput("export_plot_format", "Format", c("pdf","png"), selected = "pdf"),
                                 downloadButton("ggplot_plugin_download", "Download"))
                         )
@@ -603,7 +603,7 @@ server <- function(input, output, session) {
       #create observe event module to monitor if user input select variable to rename
       #if variable selected, update the select input list for value choices of the selected variable
       observeEvent(input$rename_variable, {
-        choices <- unique(data_prm_combined()[[input$rename_variable]])
+        choices <- unique(data_prm_combined_plot_rename$data[[input$rename_variable]])
         updateSelectInput(inputId = "rename_from", choices = choices) 
       })
       #change value of selected variable to the value from user
@@ -615,6 +615,8 @@ server <- function(input, output, session) {
           rename_df[input$rename_variable][rename_df[input$rename_variable] == input$rename_from] <- input$rename_to
           data_prm_combined_plot_rename$data <- rename_df
         }
+        choices <- unique(data_prm_combined_plot_rename$data[[input$rename_variable]])
+        updateSelectInput(inputId = "rename_from", choices = choices) 
       })
       #output datatable of the combined data and parameters
       output$data_prm_combined_plot_rename_display <- renderDataTable(datatable(data_prm_combined_plot_rename$data, 
@@ -638,6 +640,15 @@ server <- function(input, output, session) {
       unname(palette)
     })
     
+    #set legend direction
+    legend_direction <- reactive({
+      if(input$legend_position %in% c("top","bottom")){
+        "horizontal"
+      } else{
+        "vertical"
+      }
+    })
+    
     ggplot_plugin <- reactive({
       #initial plot according to selected coloring and group variable
       if(length(input$col_var) > 0){
@@ -647,15 +658,27 @@ server <- function(input, output, session) {
       }
       #add plot
       p <- p +
-        theme_light()+
         theme(axis.title = element_text(size = as.numeric(input$font_size_axis_title)), 
               axis.text = element_text(size = as.numeric(input$font_size_axis_text)),
               legend.title = element_text(size = as.numeric(input$font_size_legend)),
               legend.text = element_text(size = as.numeric(input$font_size_legend)),
-              strip.text = element_text(size = as.numeric(input$font_size_facet))
-              )+
+              strip.text = element_text(size = as.numeric(input$font_size_facet)),
+              legend.position = paste(input$legend_position),
+              legend.direction = paste(legend_direction()),
+              # axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.5),
+              panel.background = element_rect(colour = "black", fill = "white"),
+              plot.background = element_rect(colour = NA, fill = "white"),
+              axis.line = element_line(colour="black",size=0.1),
+              axis.ticks = element_line(),
+              axis.title.x = element_text(vjust = -1),
+              axis.title.y = element_text(vjust = +2),
+              legend.key = element_rect(colour = NA, fill = NA),
+              legend.key.size= unit(1, "cm"),
+              strip.background=element_rect(colour="#f0f0f0",fill=NA)
+              ) +
         scale_color_manual(values=custom_palette()) +
-        theme(legend.position = paste(input$legend_position))
+        guides(color = guide_legend(override.aes = list(size=3)))
+      
       
       #select facet variable
       if(length(input$facet_var) == 1){
@@ -679,8 +702,11 @@ server <- function(input, output, session) {
       if("linear_trend_error" %in% input$plot_element){
         p <- p + geom_smooth(method="lm", se = T)
       }
-      if(!("grid_line" %in% input$plot_element)){
-        p <- p + theme(panel.grid = element_blank())
+      if("grid_line" %in% input$plot_element){
+        p <- p + theme(panel.grid.major = element_line(colour="#f0f0f0"),
+                       panel.grid.minor = element_blank())
+      }else{
+        p <- p + theme(panel.grid.major = element_blank())
       }
       if(length(input$plot_element) == 0){
         p <- p
@@ -712,7 +738,8 @@ server <- function(input, output, session) {
     
     ###ggplotly
     output$ggplotly_plugin_display <- renderPlotly({
-        ggplotly(ggplot_plugin())
+        ggplotly(ggplot_plugin(), 
+                 width=as.numeric(input$export_plot_width)*36, height=as.numeric(input$export_plot_height)*36)
     })
 
     
