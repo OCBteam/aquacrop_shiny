@@ -432,8 +432,13 @@ server <- function(input, output, session) {
       upload_data_standard_combined() %>%
         filter(extension != "Run.OUT") %>%
         group_by(simulation_set_name) %>%
-        reduce(left_join, by = c("Day", "Month", "Year", "DAP", "Stage")) %>%
-        mutate(Date = dmy(paste(Day, Month, Year, sep="-")))
+        nest(data = dataset) %>%
+        mutate(all_data = map(data, function(data){
+          data %>%
+          reduce(left_join, by = c("Day", "Month", "Year", "DAP", "Stage"))
+        })) %>%
+        unnest(all_data)
+        #mutate(Date = dmy(paste(Day, Month, Year, sep="-")))
     })
       
     #render output display
@@ -716,7 +721,7 @@ server <- function(input, output, session) {
               strip.text = element_text(size = as.numeric(input$font_size_facet)),
               legend.position = paste(input$legend_position),
               legend.direction = paste(legend_direction()),
-              # axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.5),
+              axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.5),
               panel.background = element_rect(colour = "black", fill = "white"),
               plot.background = element_rect(colour = NA, fill = "white"),
               axis.line = element_line(colour="black",size=0.1),
@@ -725,7 +730,7 @@ server <- function(input, output, session) {
               axis.title.y = element_text(vjust = +2),
               legend.key = element_rect(colour = NA, fill = NA),
               legend.key.size= unit(1, "cm"),
-              strip.background=element_rect(colour="#f0f0f0",fill=NA)
+              strip.background=element_rect(colour="#000000",fill=NA)
               ) +
         scale_color_manual(values=custom_palette()) +
         guides(color = guide_legend(override.aes = list(size=3)))
